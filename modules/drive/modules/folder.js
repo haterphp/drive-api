@@ -17,4 +17,4 @@ const FolderModule = (options) => {
     router.delete('/folder/:id', authGuard, register(controller.delete.bind(controller)))
 }
 
-module.exports = FolderModule
+module.exports = {FolderModule}

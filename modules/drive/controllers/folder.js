@@ -19,8 +19,9 @@ class FolderController {
     async view(req, res) {
         const {id} = req.params
 
-        const folder = await this._repository.getFolderById(
-            await this.#getFolderId(id)
+        const folder = await this._repository.getFolderByIdWithChildren(
+            await this.#getFolderId(id),
+            req
         )
 
         res.status(StatusCode.OK).json({ data: folder })

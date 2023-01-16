@@ -4,7 +4,7 @@ const {AppException} = require("../exception/index.js");
 const validate = (schema) => {
     return (req, res, next) => {
         if (!schema) return next()
-        const body = req.body
+        const body = { ...req.body, ...req.files }
         const errors = {}
 
         Object.entries(schema).forEach(([key, validators]) => {

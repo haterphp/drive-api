@@ -1,16 +1,12 @@
 const {AppException} = require("../../../common/exception/index.js");
 const {StatusCode} = require("../../../enums/status-code.js");
+const {FolderPipe} = require("../pipe/folder.js");
+const {FilePipe} = require("../pipe/file.js");
 
 class FolderRepository {
     constructor(db) {
         this.folderModel = db.models.Folder
-    }
-
-    #toFormat(folder) {
-        return {
-            id: folder.id,
-            name: folder.name
-        }
+        this.fileModel = db.models.File
     }
 
     async throwIfFolderNotFoundOrIsRoot(folder, message = 'Ошибка взаимодействия') {
@@ -37,11 +33,7 @@ class FolderRepository {
     async getFolderById(id) {
         try {
             const folder = await this.folderModel.findById(id)
-            const folderChildren = await this.folderModel.find({ parentId: folder.id })
-            return {
-                ...this.#toFormat(folder),
-                children: folderChildren.map((folder) => this.#toFormat(folder))
-            }
+            return FolderPipe(folder)
         } catch (e) {
             throw AppException.new({
                 code: StatusCode.NOT_FOUND,
@@ -50,11 +42,51 @@ class FolderRepository {
         }
     }
 
+    async getFolderByIdWithChildren(id, req) {
+        try {
+            const folder = await this.getFolderById(id)
+            const folderChildren = await this.folderModel.find({ parentId: folder.id })
+            const folderFiles = await this.#getFolderFilesById(folder.id)
+
+            return {
+                ...folder,
+                children: [
+                    ...folderChildren.map((folder) => this.#pipeEntityType('folder', folder)),
+                    ...folderFiles.map((file) => this.#pipeEntityType('file', file, req))
+                ]
+            }
+        } catch (e) {
+            console.log(e)
+            if(e instanceof AppException) throw e
+            throw AppException.new({
+                code: StatusCode.NOT_FOUND,
+                message: 'Ошибка при поиски зависимостей'
+            })
+        }
+    }
+
+    #pipeEntityType(type, value, req) {
+        const PIPES = {
+            'folder': FolderPipe,
+            'file': FilePipe,
+        }
+
+        const fn = PIPES[type]
+        return {
+            ...fn(value, req),
+            type
+        }
+    }
+
+    async #getFolderFilesById(id) {
+        return await this.fileModel.find({ folderId: id })
+    }
+
     async createNewFolder(parentId, name) {
         try {
             await this.getFolderById(parentId)
             const folder = await this.folderModel.create({ parentId, name })
-            return this.#toFormat(folder)
+            return FolderPipe(folder)
         } catch (e) {
             throw AppException.new({
                 code: e.code ?? StatusCode.SERVER_ERROR,
@@ -77,7 +109,7 @@ class FolderRepository {
             if (name) body.name = name
 
             await this.folderModel.updateOne({_id: folder.id}, body)
-            return this.#toFormat({ ...folder, ...body })
+            return FolderPipe({ ...folder, ...body })
         } catch (e) {
             throw AppException.new({
                 code: e.code ?? StatusCode.SERVER_ERROR,
