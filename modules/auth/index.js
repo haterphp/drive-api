@@ -1,7 +1,7 @@
 const {Router} = require('express')
 const {register} = require("../../common/routing.js");
 
-const {AuthController} = require("./controller/index.js");
+const {AuthController} = require("./controllers/index.js");
 const {AuthRepository} = require("./repository/index.js");
 
 const {validate} = require("../../common/validation/index.js");

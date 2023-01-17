@@ -22,6 +22,7 @@ const FolderModel = require('./database/folder.js')
 const FileModel = require('./database/file.js')
 
 const {ExceptionHandler} = require("./common/exception/handler-middleware.js");
+const {registerSwaggerDoc} = require("./swagger/index.js");
 
 const PORT = process.env.PORT ?? 3000
 
@@ -32,6 +33,7 @@ void async function () {
     )
     registerModules(server, { db })
     ExceptionHandler(server)
+    registerSwaggerDoc(server)
 
     server.listen(PORT, () => {
         console.log('Server start on port %d', PORT)
