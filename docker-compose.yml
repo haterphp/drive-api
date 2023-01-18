@@ -14,7 +14,7 @@ services:
       - MONGODB_CONNECTION_DATABASE=drive
       - jWT_SECRET=vsqzJUyiRxkSfnkCPpSh
     ports:
-      - 7000:7000
+      - 7000:3000
     depends_on:
       - mongodb
     restart: unless-stopped
