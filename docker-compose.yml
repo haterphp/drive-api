@@ -1,0 +1,29 @@
+version: '3.4'
+
+services:
+  application:
+    container_name: drive-api
+    image: drive-api:latest
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    command: yarn start:prod
+    environment:
+      - PORT=3000
+      - MONGODB_CONNECTION_STRING=mongodb://mongodb:27017
+      - MONGODB_CONNECTION_DATABASE=drive
+      - jWT_SECRET=vsqzJUyiRxkSfnkCPpSh
+    ports:
+      - 7000:7000
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+  mongodb:
+    image: mongo:latest
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb:/data/db
+volumes:
+  mongodb:
