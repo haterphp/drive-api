@@ -6,7 +6,12 @@ const {StatusCode} = require("../../../enums/status-code.js");
 class AuthRepository {
     constructor(db) {
         this.model = db.models.User
+        this.folderModel = db.models.Folder
     }
+
+   async createRootFolder(userId) {
+        return await this.folderModel.create({ userId, parentId: null, name: 'root' })
+   }
 
     async getUserData(login) {
         return await this.model.findOne({ login })
@@ -14,7 +19,9 @@ class AuthRepository {
 
     async createUserData(login, password) {
         try {
-            return await this.model.create({ login, password })
+            const user =  await this.model.create({ login, password })
+            await this.createRootFolder(user.id)
+            return user
         } catch (e) {
             throw AppException.new({ code: StatusCode.FORBIDDEN, message: 'Пользователь с таким логином уже существует' })
         }

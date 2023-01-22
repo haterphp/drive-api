@@ -54,11 +54,11 @@ class FolderController {
         this._repository = repository
     }
 
-    async #getFolderId(id) {
+    async #getFolderId(id, userId) {
         let folderId = id
 
         if (folderId === 'root') {
-            const root = await this._repository.getRootFolder()
+            const root = await this._repository.getRootFolder(userId)
             folderId = root.id
         }
 
@@ -103,7 +103,7 @@ class FolderController {
         const {id} = req.params
 
         const folder = await this._repository.getFolderByIdWithChildren(
-            await this.#getFolderId(id),
+            await this.#getFolderId(id, req.user.id),
             req
         )
 
@@ -146,8 +146,9 @@ class FolderController {
         const { body } = req
 
         const newFolder = await this._repository.createNewFolder(
-            await this.#getFolderId(body.parentId),
-            body.name
+            await this.#getFolderId(body.parentId, req.user.id),
+            body.name,
+            req.user.id
         )
 
         res.status(StatusCode.CREATED).json({ data: newFolder })
@@ -189,9 +190,10 @@ class FolderController {
         const { id } = req.params
         const {body} = req
         const updatedFolder = await this._repository.updateFolder(
-            await this.#getFolderId(id),
-            !!body.parentId ? await this.#getFolderId(body.parentId) : null,
-            body.name ?? null
+            await this.#getFolderId(id, req.user.id),
+            !!body.parentId ? await this.#getFolderId(body.parentId, req.user.id) : null,
+            body.name ?? null,
+                req.user.id
         )
         res.status(StatusCode.OK).json({ data: updatedFolder })
     }
@@ -220,7 +222,8 @@ class FolderController {
     async delete(req, res) {
         const {id} = req.params
         await this._repository.removeFolder(
-            await this.#getFolderId(id)
+            await this.#getFolderId(id, req.user.id),
+            req.user.id
         )
         res.status(StatusCode.OK).json({ message: "Папка удалена" })
     }

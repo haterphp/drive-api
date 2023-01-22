@@ -21,7 +21,7 @@ class FileRepository {
         }
     }
     
-    async #updateFile(file) {
+    async #uploadFile(file) {
         try {
             const filepath = 'uploads/' + file.name
             await file.mv('./' + filepath)
@@ -36,10 +36,10 @@ class FileRepository {
             })
         }
     }
-    async create(file, folderId, req) {
+    async create(file, folderId, req, userId) {
         try {
-            await this.folderRepository.getFolderById(folderId)
-            const fileInfo = await this.#updateFile(file)
+            await this.folderRepository.throwIfNotMyFolder(folderId, userId)
+            const fileInfo = await this.#uploadFile(file)
             const response = await this.model.create({
                 folderId,
                 ...fileInfo
@@ -55,9 +55,10 @@ class FileRepository {
         }
     }
     
-    async remove(id) {
+    async remove(id, userId) {
         try {
             const file = await this.#findFileById(id)
+            await this.folderRepository.throwIfNotMyFolder(file.folderId, userId)
             await file.remove()
         } catch (e) {
             if (e instanceof AppException) throw e

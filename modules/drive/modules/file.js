@@ -4,6 +4,7 @@ const {register} = require("../../../common/routing.js");
 
 const {validate} = require("../../../common/validation/index.js");
 const {CreateFileSchema} = require("../schema/file/create.js");
+const {CanAccess} = require("../guard/can-access.js");
 const FileModule = (options) => {
     const { authGuard, db, router } = options
 

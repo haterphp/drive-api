@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
 
 const schema = mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
     parentId: { type: String, default: null },
     name: String,
 })

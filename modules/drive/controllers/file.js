@@ -52,7 +52,7 @@ class FileController {
      */
     async create (req, res) {
         const {body, files} = req
-        const file = await this._repository.create(files.file, body.folderId, req)
+        const file = await this._repository.create(files.file, body.folderId, req, req.user.id)
         res.status(StatusCode.CREATED).json(file)
     }
 
@@ -76,7 +76,7 @@ class FileController {
      */
     async remove (req, res) {
         const {id} = req.params
-        await this._repository.remove(id)
+        await this._repository.remove(id, req.user.id)
         res.status(StatusCode.OK).json({ message: "Файл успешно удален" })
     }
 
