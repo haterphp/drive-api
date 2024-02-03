@@ -1,4 +1,4 @@
-const {StatusCode} = require("../../../enums/status-code.js");
+const { StatusCode } = require("../../../enums/status-code.js");
 
 /**
  * @openapi
@@ -50,183 +50,185 @@ const {StatusCode} = require("../../../enums/status-code.js");
  *                      example: Photos
  */
 class FolderController {
-    constructor(repository) {
-        this._repository = repository
+  constructor(repository) {
+    this._repository = repository;
+  }
+
+  async #getFolderId(id, userId) {
+    let folderId = id;
+
+    if (folderId === "root") {
+      const root = await this._repository.getRootFolder(userId);
+      folderId = root.id;
     }
 
-    async #getFolderId(id, userId) {
-        let folderId = id
+    return folderId;
+  }
 
-        if (folderId === 'root') {
-            const root = await this._repository.getRootFolder(userId)
-            folderId = root.id
-        }
+  /**
+   * @openapi
+   * /drive/folder/{id}:
+   *  get:
+   *      tags:
+   *          - Folders
+   *      summary: Просмотр папки
+   *      description: id - ID родительской папки или 'root'
+   *      responses:
+   *          200:
+   *              content:
+   *                  application/json:
+   *                      schema:
+   *                          type: object
+   *                          properties:
+   *                              data:
+   *                                   type: object
+   *                                   properties:
+   *                                      id:
+   *                                          type: string
+   *                                          example: 63be49b4055e4fd61d684195
+   *                                      name:
+   *                                          type: string
+   *                                          example: Photos
+   *                                      children:
+   *                                          type: array
+   *                                          items:
+   *                                              oneOf:
+   *                                                  - $ref: '#/components/schemas/ChildFolder'
+   *                                                  - $ref: '#/components/schemas/ChildFile'
+   *
+   *
+   */
 
-        return folderId
-    }
+  async view(req, res) {
+    const { id } = req.params;
 
-    /**
-     * @openapi
-     * /drive/folder/{id}:
-     *  get:
-     *      tags:
-     *          - Folders
-     *      summary: Просмотр папки
-     *      description: id - ID родительской папки или 'root'
-     *      responses:
-     *          200:
-     *              content:
-     *                  application/json:
-     *                      schema:
-     *                          type: object
-     *                          properties:
-     *                              data:
-     *                                   type: object
-     *                                   properties:
-     *                                      id:
-     *                                          type: string
-     *                                          example: 63be49b4055e4fd61d684195
-     *                                      name:
-     *                                          type: string
-     *                                          example: Photos
-     *                                      children:
-     *                                          type: array
-     *                                          items:
-     *                                              oneOf:
-     *                                                  - $ref: '#/components/schemas/ChildFolder'
-     *                                                  - $ref: '#/components/schemas/ChildFile'
-     *
-     *
-     */
+    const folder = await this._repository.getFolderByIdWithChildren(
+      await this.#getFolderId(id, req.user.id),
+      req
+    );
 
-    async view(req, res) {
-        const {id} = req.params
+    res.status(StatusCode.OK).json({ data: folder });
+  }
 
-        const folder = await this._repository.getFolderByIdWithChildren(
-            await this.#getFolderId(id, req.user.id),
-            req
-        )
+  /**
+   * @openapi
+   * /drive/folder:
+   *  post:
+   *      tags:
+   *          - Folders
+   *      summary: Создание папки
+   *      requestBody:
+   *          content:
+   *              application/json:
+   *                  schema:
+   *                      type: object
+   *                      properties:
+   *                          parentId:
+   *                              type: string
+   *                              example: root или id папки (63be49b4055e4fd61d684195)
+   *                          name:
+   *                              type: string
+   *                              example: Photos
+   *      responses:
+   *          201:
+   *              content:
+   *                  application/json:
+   *                      schema:
+   *                          type: object
+   *                          properties:
+   *                              data:
+   *                                      $ref: '#/components/schemas/Folder'
+   *
+   *
+   */
 
-        res.status(StatusCode.OK).json({ data: folder })
-    }
+  async create(req, res) {
+    const { body } = req;
 
-    /**
-     * @openapi
-     * /drive/folder:
-     *  post:
-     *      tags:
-     *          - Folders
-     *      summary: Создание папки
-     *      requestBody:
-     *          content:
-     *              application/json:
-     *                  schema:
-     *                      type: object
-     *                      properties:
-     *                          parentId:
-     *                              type: string
-     *                              example: root или id папки (63be49b4055e4fd61d684195)
-     *                          name:
-     *                              type: string
-     *                              example: Photos
-     *      responses:
-     *          201:
-     *              content:
-     *                  application/json:
-     *                      schema:
-     *                          type: object
-     *                          properties:
-     *                              data:
- *                                      $ref: '#/components/schemas/Folder'
-     *
-     *
-     */
+    const newFolder = await this._repository.createNewFolder(
+      await this.#getFolderId(body.parentId, req.user.id),
+      body.name,
+      req.user.id
+    );
 
-    async create(req, res) {
-        const { body } = req
+    res.status(StatusCode.CREATED).json({ data: newFolder });
+  }
 
-        const newFolder = await this._repository.createNewFolder(
-            await this.#getFolderId(body.parentId, req.user.id),
-            body.name,
-            req.user.id
-        )
+  /**
+   * @openapi
+   * /drive/folder/{id}:
+   *  patch:
+   *      tags:
+   *          - Folders
+   *      summary: Редактирование папки
+   *      requestBody:
+   *          content:
+   *              application/json:
+   *                  schema:
+   *                      type: object
+   *                      properties:
+   *                          parentId:
+   *                              type: string
+   *                              example: root или id папки (63be49b4055e4fd61d684195)
+   *                          name:
+   *                              type: string
+   *                              example: Photos
+   *      responses:
+   *          200:
+   *              content:
+   *                  application/json:
+   *                      schema:
+   *                          type: object
+   *                          properties:
+   *                              data:
+   *                                  $ref: '#/components/schemas/Folder'
+   *
+   *
+   */
 
-        res.status(StatusCode.CREATED).json({ data: newFolder })
-    }
+  async update(req, res) {
+    const { id } = req.params;
+    const { body } = req;
+    const updatedFolder = await this._repository.updateFolder(
+      await this.#getFolderId(id, req.user.id),
+      !!body.parentId
+        ? await this.#getFolderId(body.parentId, req.user.id)
+        : null,
+      body.name ?? null,
+      req.user.id
+    );
+    res.status(StatusCode.OK).json({ data: updatedFolder });
+  }
 
-    /**
-     * @openapi
-     * /drive/folder/{id}:
-     *  patch:
-     *      tags:
-     *          - Folders
-     *      summary: Редактирование папки
-     *      requestBody:
-     *          content:
-     *              application/json:
-     *                  schema:
-     *                      type: object
-     *                      properties:
-     *                          parentId:
-     *                              type: string
-     *                              example: root или id папки (63be49b4055e4fd61d684195)
-     *                          name:
-     *                              type: string
-     *                              example: Photos
-     *      responses:
-     *          200:
-     *              content:
-     *                  application/json:
-     *                      schema:
-     *                          type: object
-     *                          properties:
-     *                              data:
-     *                                  $ref: '#/components/schemas/Folder'
-     *
-     *
-     */
+  /**
+   * @openapi
+   * /drive/folder/{id}:
+   *  delete:
+   *      tags:
+   *          - Folders
+   *      summary: Удаление папки
+   *      responses:
+   *          200:
+   *              content:
+   *                  application/json:
+   *                      schema:
+   *                          type: object
+   *                          properties:
+   *                              message:
+   *                                  type: object
+   *                                  example: Папка успешно удалена
+   *
+   *
+   */
 
-    async update(req, res) {
-        const { id } = req.params
-        const {body} = req
-        const updatedFolder = await this._repository.updateFolder(
-            await this.#getFolderId(id, req.user.id),
-            !!body.parentId ? await this.#getFolderId(body.parentId, req.user.id) : null,
-            body.name ?? null,
-                req.user.id
-        )
-        res.status(StatusCode.OK).json({ data: updatedFolder })
-    }
-
-    /**
-     * @openapi
-     * /drive/folder/{id}:
-     *  delete:
-     *      tags:
-     *          - Folders
-     *      summary: Удаление папки
-     *      responses:
-     *          200:
-     *              content:
-     *                  application/json:
-     *                      schema:
-     *                          type: object
-     *                          properties:
-     *                              message:
-     *                                  type: object
-     *                                  example: Папка успешно удалена
-     *
-     *
-     */
-
-    async delete(req, res) {
-        const {id} = req.params
-        await this._repository.removeFolder(
-            await this.#getFolderId(id, req.user.id),
-            req.user.id
-        )
-        res.status(StatusCode.OK).json({ message: "Папка удалена" })
-    }
+  async delete(req, res) {
+    const { id } = req.params;
+    await this._repository.removeFolder(
+      await this.#getFolderId(id, req.user.id),
+      req.user.id
+    );
+    res.status(StatusCode.OK).json({ message: "Папка удалена" });
+  }
 }
 
-module.exports = {FolderController}
+module.exports = { FolderController };
